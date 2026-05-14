@@ -621,8 +621,8 @@
     <div class="sec-label">Agreements</div>
     <div class="check-list">
       <label class="check-item"><input type="checkbox" id="chk1" onchange="checkSignBtn()"><span>I have read and agree to the full <strong>Luxury Residential Rental Agreement</strong> (all 18 sections and Exhibit A), governing law of the State of Tennessee.</span></label>
-      <label class="check-item"><input type="checkbox" id="chk2" onchange="checkSignBtn()"><span>I acknowledge the <strong>property unavailability June 25–28, 2026</strong> and agree to vacate by 12:00 PM on June 25 and return no earlier than 4:00 PM on June 29.</span></label>
-      <label class="check-item"><input type="checkbox" id="chk3" onchange="checkSignBtn()"><span>I understand the <strong>video walk-through</strong> (Exhibit A) is the sole condition record and agree to participate in or acknowledge both move-in and move-out recordings.</span></label>
+      <label class="check-item"><input type="checkbox" id="chk2" onchange="checkSignBtn()"><span>I acknowledge the <strong>property unavailability June 25–28, 2026</strong> and agree to vacate by 11:00 AM on June 25 and return no earlier than 4:00 PM on June 29.</span></label>
+      <label class="check-item"><input type="checkbox" id="chk3" onchange="checkSignBtn()"><span>I understand a <strong>video walk-through</strong> will be conducted at move-in and move-out as the sole condition record, and I will sign the separate Video Walk-Through Record on the Commencement Date.</span></label>
       <label class="check-item"><input type="checkbox" id="chk4" onchange="checkSignBtn()"><span>I authorize <strong>Historic Dream Nashville</strong> to charge my payment method for the security deposit and recurring monthly rent as outlined.</span></label>
     </div>
 
@@ -917,31 +917,42 @@ async function handleDepositPay() {
   const tenantEmail = document.getElementById('email').value;
 
   try {
-    // 1. Ask our server to create a PaymentIntent
     const res = await fetch(`${API_BASE}/create-deposit-intent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tenantName, tenantEmail, paymentMethodType: depMethod === 'ach' ? 'us_bank_account' : 'card' }),
     });
-    const { clientSecret, error: serverErr } = await res.json();
+    const { clientSecret, customerId, error: serverErr } = await res.json();
     if (serverErr) throw new Error(serverErr);
+    savedCustomerId = customerId;
 
-    // 2. Confirm the payment with Stripe.js using the card element
     let result;
     if (depMethod === 'card') {
+      // Card — use Stripe card element
       result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: { card: depCardEl, billing_details: { name: tenantName, email: tenantEmail } },
         receipt_email: tenantEmail,
       });
     } else {
-      // ACH — Stripe will collect bank details via their hosted flow
-      result = await stripe.confirmUsBankAccountPayment(clientSecret, {
-        payment_method: { us_bank_account: { routing_number: document.getElementById('dep-routing') ? document.getElementById('dep-routing').value : '' }, billing_details: { name: tenantName, email: tenantEmail } },
+      // ACH — Stripe opens their hosted bank login popup (Financial Connections)
+      // No bank fields needed in our form — Stripe handles everything
+      result = await stripe.collectBankAccountForPayment({
+        clientSecret,
+        params: {
+          payment_method_type: 'us_bank_account',
+          payment_method_data: { billing_details: { name: tenantName, email: tenantEmail } },
+        },
+        expand: ['payment_method'],
       });
+      // After bank is linked, confirm the payment
+      if (!result.error) {
+        result = await stripe.confirmUsBankAccountPayment(clientSecret);
+      }
     }
 
     if (result.error) throw new Error(result.error.message);
 
+    // ACH payments go into a pending state — that's normal, move forward
     goTo(4);
   } catch(e) {
     errEl.textContent = e.message || 'Payment failed. Please check your details and try again.';
@@ -972,7 +983,6 @@ async function handleRentSetup() {
   const tenantEmail = document.getElementById('email').value;
 
   try {
-    // 1. Create SetupIntent on our server (saves payment method for future charges)
     const res = await fetch(`${API_BASE}/create-setup-intent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -982,24 +992,32 @@ async function handleRentSetup() {
     if (serverErr) throw new Error(serverErr);
     savedCustomerId = customerId;
 
-    // 2. Confirm the SetupIntent — saves card for future autopay
     let result;
     if (rentMethod === 'card') {
       result = await stripe.confirmCardSetup(clientSecret, {
         payment_method: { card: rentCardEl, billing_details: { name: tenantName, email: tenantEmail } },
       });
     } else {
-      result = await stripe.confirmUsBankAccountSetup(clientSecret, {
-        payment_method: { us_bank_account: { routing_number: '', account_number: '' }, billing_details: { name: tenantName, email: tenantEmail } },
+      // ACH — Stripe hosted bank auth popup, no raw fields needed
+      result = await stripe.collectBankAccountForSetup({
+        clientSecret,
+        params: {
+          payment_method_type: 'us_bank_account',
+          payment_method_data: { billing_details: { name: tenantName, email: tenantEmail } },
+        },
+        expand: ['payment_method'],
       });
+      if (!result.error) {
+        result = await stripe.confirmUsBankAccountSetup(clientSecret);
+      }
     }
 
     if (result.error) throw new Error(result.error.message);
 
-    // 3. Save payment method ID for scheduling
-    savedPaymentMethodId = result.setupIntent.payment_method;
+    savedPaymentMethodId = rentMethod === 'card'
+      ? result.setupIntent.payment_method
+      : result.setupIntent.payment_method;
 
-    // 4. Tell server to schedule both rent charges
     await fetch(`${API_BASE}/schedule-autopay`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
