@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historic Dream Nashville — Tenant Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+  :root {
+    --navy: #1A1A2E;
+    --navy2: #16213E;
+    --gold: #B8960C;
+    --gold-light: #E8D5A3;
+    --gold-pale: #FDF8EC;
+    --gold-mid: #D4AF37;
+    --cream: #F9F5ED;
+    --charcoal: #2C2C2C;
+    --muted: #6B6B6B;
+    --border: rgba(184,150,12,0.2);
+    --radius: 10px;
+    --shadow: 0 8px 40px rgba(26,26,46,0.13);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Jost', sans-serif;
+    background: var(--navy2);
+    min-height: 100vh;
+    color: var(--charcoal);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+    background-image: repeating-linear-gradient(0deg, transparent, transparent 59px, rgba(184,150,12,0.04) 60px),
+                      repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(184,150,12,0.04) 60px);
+  }
+
+  /* ── TOP MASTHEAD ── */
+  .masthead {
+    width: 100%; max-width: 680px;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 2.5rem 0 1.75rem;
+    position: relative;
+  }
+  .masthead::before {
+    content: '';
+    display: block;
+    width: 1px; height: 48px;
+    background: linear-gradient(to bottom, transparent, var(--gold-mid));
+    margin-bottom: 1rem;
+  }
+  .masthead-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2rem; font-weight: 600;
+    color: var(--gold-light);
+    letter-spacing: 0.12em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+  .masthead-sub {
+    font-size: 11px; font-weight: 300;
+    color: rgba(232,213,163,0.55);
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+  .masthead-divider {
+    width: 60px; height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold-mid), transparent);
+    margin: 1.25rem 0;
+  }
+  .masthead-address {
+    font-size: 12px; font-weight: 300;
+    color: rgba(232,213,163,0.45);
+    letter-spacing: 0.15em;
+    text-align: center;
+  }
+
+  /* ── PROGRESS TRACK ── */
+  .progress-wrap {
+    width: 100%; max-width: 680px;
+    display: flex; align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
+    gap: 0;
+  }
+  .prog-step {
+    display: flex; flex-direction: column; align-items: center;
+    flex: 1; position: relative; cursor: default;
+  }
+  .prog-step::after {
+    content: '';
+    position: absolute;
+    top: 14px; left: 50%; right: -50%;
+    height: 1px;
+    background: var(--border);
+    z-index: 0;
+  }
+  .prog-step:last-child::after { display: none; }
+  .prog-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1px solid rgba(184,150,12,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 500;
+    color: rgba(232,213,163,0.4);
+    background: var(--navy);
+    position: relative; z-index: 1;
+    transition: all 0.3s;
+  }
+  .prog-step.active .prog-dot {
+    border-color: var(--gold-mid);
+    color: var(--gold-mid);
+    box-shadow: 0 0 16px rgba(184,150,12,0.35);
+  }
+  .prog-step.done .prog-dot {
+    background: var(--gold-mid);
+    border-color: var(--gold-mid);
+    color: var(--navy);
+  }
+  .prog-label {
+    font-size: 9px; font-weight: 400;
+    color: rgba(232,213,163,0.3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 5px;
+    text-align: center;
+  }
+  .prog-step.active .prog-label { color: rgba(232,213,163,0.7); }
+  .prog-step.done .prog-label { color: rgba(184,150,12,0.6); }
+
+  /* ── CARD ── */
+  .card {
+    width: 100%; max-width: 680px;
+    background: var(--cream);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    animation: fadeUp 0.35s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card-header {
+    background: var(--navy);
+    padding: 1.25rem 2rem;
+    display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-header-icon {
+    width: 36px; height: 36px;
+    background: rgba(184,150,12,0.12);
+    border: 0.5px solid var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--gold-mid); font-size: 16px;
+  }
+  .card-header-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.2rem; font-weight: 500;
+    color: var(--gold-light);
+    letter-spacing: 0.04em;
+  }
+  .card-header-sub { font-size: 11px; color: rgba(232,213,163,0.45); margin-top: 1px; }
+  .card-body { padding: 1.75rem 2rem; }
+
+  /* ── SECTION LABEL ── */
+  .sec-label {
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.85rem;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sec-label::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
+
+  /* ── LEASE SUMMARY TABLE ── */
+  .lease-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 13px; }
+  .lease-table tr { border-bottom: 0.5px solid rgba(184,150,12,0.12); }
+  .lease-table tr:last-child { border-bottom: none; }
+  .lease-table td { padding: 8px 0; }
+  .lease-table td:first-child { color: var(--muted); width: 50%; }
+  .lease-table td:last-child { font-weight: 500; color: var(--charcoal); text-align: right; }
+  .lease-table td.gold { color: var(--gold); font-family: 'Cormorant Garamond', serif; font-size: 15px; }
+
+  /* ── ALERT BOX ── */
+  .alert {
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    font-size: 13px;
+    line-height: 1.6;
+    display: flex; gap: 10px;
+  }
+  .alert-warn {
+    background: #FFF8E7;
+    border: 1px solid #E8C53A;
+    color: #7A5C00;
+  }
+  .alert-info {
+    background: #EEF4FB;
+    border: 1px solid #A8C5E8;
+    color: #1A4A7A;
+  }
+  .alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .alert strong { font-weight: 500; display: block; margin-bottom: 3px; }
+
+  /* ── FORM FIELDS ── */
+  .field-group { margin-bottom: 1rem; }
+  .field-group label {
+    display: block;
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+  .field-group input, .field-group select, .field-group textarea {
+    width: 100%;
+    border: 0.5px solid rgba(26,26,46,0.18);
+    border-radius: 6px;
+    padding: 10px 13px;
+    font-size: 13.5px;
+    font-family: 'Jost', sans-serif;
+    color: var(--charcoal);
+    background: #fff;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field-group input:focus, .field-group select:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(184,150,12,0.1);
+  }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  /* ── SIGNATURE ── */
+  .sig-wrap {
+    border: 0.5px solid rgba(26,26,46,0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+    background: #fff;
+  }
+  .sig-toolbar {
+    background: var(--navy);
+    padding: 8px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: rgba(232,213,163,0.6);
+  }
+  .sig-canvas { display: block; width: 100%; height: 110px; cursor: crosshair; touch-action: none; }
+  .sig-hint {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    font-size: 12px; color: rgba(26,26,46,0.25);
+    pointer-events: none; font-style: italic;
+  }
+  .sig-container { position: relative; }
+
+  /* ── CHECKBOXES ── */
+  .check-list { margin-bottom: 1.5rem; }
+  .check-item {
+    display: flex; gap: 11px; align-items: flex-start;
+    padding: 9px 0;
+    border-bottom: 0.5px solid rgba(184,150,12,0.1);
+    cursor: pointer;
+    font-size: 13px; line-height: 1.55; color: var(--muted);
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-item input[type=checkbox] {
+    margin-top: 2px; flex-shrink: 0;
+    width: 15px; height: 15px;
+    accent-color: var(--gold);
+    cursor: pointer;
+  }
+  .check-item strong { color: var(--charcoal); font-weight: 500; }
+
+  /* ── PAYMENT METHOD TOGGLE ── */
+  .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.25rem; }
+  .method-btn {
+    padding: 1rem;
+    border: 0.5px solid rgba(26,26,46,0.15);
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.18s;
+  }
+  .method-btn:hover { border-color: rgba(184,150,12,0.4); }
+  .method-btn.active {
+    border-color: var(--gold);
+    background: var(--gold-pale);
+    box-shadow: 0 0 0 3px rgba(184,150,12,0.1);
+  }
+  .method-btn .mb-icon { font-size: 22px; color: var(--muted); margin-bottom: 5px; }
+  .method-btn.active .mb-icon { color: var(--gold); }
+  .method-btn .mb-name { font-size: 13px; font-weight: 500; color: var(--charcoal); }
+  .method-btn .mb-fee { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .method-btn.active .mb-fee { color: var(--gold); }
+
+  /* ── STRIPE ELEMENT WRAPPER ── */
+  .stripe-wrap {
+    border: 0.5px solid rgba(26,26,46,0.15);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    background: #fff;
+    margin-bottom: 1.25rem;
+  }
+  .stripe-field-label {
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 5px;
+  }
+  .stripe-el {
+    border: 0.5px solid rgba(26,26,46,0.15);
+    border-radius: 6px; padding: 10px 13px;
+    background: #fff; margin-bottom: 10px;
+    min-height: 38px;
+  }
+  .stripe-el:last-child { margin-bottom: 0; }
+  .stripe-el-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stripe-note {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--muted);
+    margin-top: 10px;
+  }
+
+  /* ── SUMMARY CARDS ── */
+  .sum-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.5rem; }
+  .sum-card {
+    border-radius: 8px; padding: 1rem 1.1rem;
+    background: var(--navy);
+  }
+  .sum-card .sc-label { font-size: 10px; color: rgba(232,213,163,0.5); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+  .sum-card .sc-value { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 600; color: var(--gold-light); }
+  .sum-card .sc-sub { font-size: 11px; color: rgba(232,213,163,0.35); margin-top: 2px; }
+  .sum-card.light { background: rgba(184,150,12,0.07); border: 0.5px solid var(--border); }
+  .sum-card.light .sc-label { color: var(--muted); }
+  .sum-card.light .sc-value { color: var(--charcoal); font-size: 1.3rem; }
+  .sum-card.light .sc-sub { color: var(--muted); }
+
+  /* ── CONFIRM TABLE ── */
+  .confirm-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 1.5rem; }
+  .confirm-table tr { border-bottom: 0.5px solid rgba(184,150,12,0.12); }
+  .confirm-table tr:last-child { border-bottom: none; border-top: 1px solid var(--border); }
+  .confirm-table td { padding: 9px 0; }
+  .confirm-table td:first-child { color: var(--muted); }
+  .confirm-table td:last-child { text-align: right; font-weight: 500; }
+  .confirm-table tr:last-child td { padding-top: 12px; font-size: 15px; }
+  .confirm-table tr:last-child td:last-child { color: var(--gold); font-family: 'Cormorant Garamond', serif; font-size: 18px; }
+
+  /* ── SUCCESS ── */
+  .success-wrap {
+    text-align: center; padding: 2rem 1.5rem;
+  }
+  .success-ring {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    border: 1px solid var(--gold-mid);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.25rem;
+    background: var(--navy);
+    box-shadow: 0 0 30px rgba(184,150,12,0.2);
+  }
+  .success-ring svg { width: 32px; height: 32px; stroke: var(--gold-mid); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .success-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.6rem; font-weight: 600;
+    color: var(--navy); margin-bottom: 0.5rem;
+  }
+  .success-sub { font-size: 13px; color: var(--muted); line-height: 1.65; max-width: 340px; margin: 0 auto 1.5rem; }
+  .receipt-box {
+    background: var(--navy);
+    border-radius: 8px; padding: 1.25rem 1.5rem;
+    text-align: left; margin-bottom: 1.5rem;
+  }
+  .receipt-row {
+    display: flex; justify-content: space-between;
+    font-size: 13px; padding: 5px 0;
+    border-bottom: 0.5px solid rgba(184,150,12,0.12);
+    color: rgba(232,213,163,0.6);
+  }
+  .receipt-row:last-child { border-bottom: none; }
+  .receipt-row span:last-child { color: var(--gold-light); font-weight: 500; }
+
+  /* ── BUTTONS ── */
+  .btn-primary {
+    width: 100%; padding: 0.95rem;
+    background: var(--navy);
+    color: var(--gold-light);
+    border: none; border-radius: 8px;
+    font-family: 'Jost', sans-serif;
+    font-size: 13.5px; font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: opacity 0.18s, transform 0.1s;
+    margin-bottom: 0.75rem;
+  }
+  .btn-primary:hover:not(:disabled) { opacity: 0.87; }
+  .btn-primary:active:not(:disabled) { transform: scale(0.985); }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-primary.gold-btn { background: var(--gold-mid); color: var(--navy); }
+  .btn-ghost {
+    background: transparent;
+    border: 0.5px solid rgba(26,26,46,0.2);
+    border-radius: 8px;
+    padding: 0.7rem 1.25rem;
+    font-family: 'Jost', sans-serif;
+    font-size: 12.5px; color: var(--muted);
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: border-color 0.15s;
+  }
+  .btn-ghost:hover { border-color: rgba(26,26,46,0.4); }
+  .btn-clear {
+    background: transparent; border: none;
+    font-size: 11px; color: rgba(232,213,163,0.45);
+    cursor: pointer; letter-spacing: 0.08em;
+  }
+  .btn-clear:hover { color: rgba(232,213,163,0.8); }
+  .nav-row { display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; }
+
+  /* ── FOOTER ── */
+  .portal-footer {
+    margin-top: 1.5rem;
+    display: flex; align-items: center; gap: 7px;
+    font-size: 11px; color: rgba(232,213,163,0.25);
+    letter-spacing: 0.08em;
+  }
+  .stripe-logo { height: 16px; opacity: 0.4; }
+
+  /* ── ERROR ── */
+  .err-msg { color: #C0392B; font-size: 12px; margin-top: 8px; display: none; }
+  .err-msg.show { display: block; }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(232,213,163,0.3);
+    border-top-color: var(--gold-light);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .hidden { display: none !important; }
+  .check-green { color: #27AE60; }
+
+  @media (max-width: 520px) {
+    body { padding: 1rem 0.5rem 3rem; }
+    .card-body { padding: 1.25rem 1.25rem; }
+    .field-row, .field-row-3 { grid-template-columns: 1fr; }
+    .sum-grid { grid-template-columns: 1fr; }
+    .method-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- MASTHEAD -->
+<div class="masthead">
+  <div class="masthead-name">Historic Dream Nashville</div>
+  <div class="masthead-sub">Tenant Portal &nbsp;·&nbsp; Secure Lease & Payment</div>
+  <div class="masthead-divider"></div>
+  <div class="masthead-address">806 Boscobel Street &nbsp;·&nbsp; Nashville, TN 37206</div>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-wrap" id="progressWrap">
+  <div class="prog-step active" id="ps0"><div class="prog-dot">1</div><div class="prog-label">Review</div></div>
+  <div class="prog-step" id="ps1"><div class="prog-dot">2</div><div class="prog-label">Your Info</div></div>
+  <div class="prog-step" id="ps2"><div class="prog-dot">3</div><div class="prog-label">Sign</div></div>
+  <div class="prog-step" id="ps3"><div class="prog-dot">4</div><div class="prog-label">Deposit</div></div>
+  <div class="prog-step" id="ps4"><div class="prog-dot">5</div><div class="prog-label">Rent</div></div>
+  <div class="prog-step" id="ps5"><div class="prog-dot">6</div><div class="prog-label">Confirm</div></div>
+</div>
+
+<!-- PANELS -->
+
+<!-- PANEL 0: REVIEW -->
+<div class="card" id="panel-0">
+  <div class="card-header">
+    <div class="card-header-icon">&#9670;</div>
+    <div>
+      <div class="card-header-title">Lease Agreement Review</div>
+      <div class="card-header-sub">Please read all terms before proceeding</div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="sec-label">Lease at a glance</div>
+    <table class="lease-table">
+      <tr><td>Property address</td><td>806 Boscobel St, Nashville TN 37206</td></tr>
+      <tr><td>Lease term</td><td>June 1 – July 31, 2026 (2 months)</td></tr>
+      <tr><td>Monthly rent</td><td class="gold">$5,500.00</td></tr>
+      <tr><td>Security deposit</td><td class="gold">$5,000.00</td></tr>
+      <tr><td>Utilities included</td><td>Yes — all utilities</td></tr>
+      <tr><td>Weekly cleaning</td><td>Yes — included</td></tr>
+      <tr><td>Yard &amp; plant care</td><td>Yes — included</td></tr>
+      <tr><td>Governing law</td><td>State of Tennessee</td></tr>
+      <tr><td>Condition documentation</td><td>Video walk-through (Exhibit A)</td></tr>
+    </table>
+
+    <div class="alert alert-warn">
+      <span class="alert-icon">⚠</span>
+      <div>
+        <strong>Property Unavailability — June 25–28, 2026</strong>
+        The property will be unavailable from <strong>June 25 through June 28, 2026</strong> (4 days). Tenant agrees to vacate by <strong>12:00 PM on June 25</strong> and may return no earlier than <strong>4:00 PM on June 29, 2026</strong>. These 4 days are excluded from the tenancy. A credit of <strong>$733.33</strong> (4 × $183.33/day) will be applied against Month 2 rent, reducing the July 1 charge to <strong>$4,766.67</strong>.
+      </div>
+    </div>
+
+    <div class="alert alert-info">
+      <span class="alert-icon">ℹ</span>
+      <div>
+        <strong>No pro-ration required</strong>
+        Your lease begins June 1 and ends July 31 — both full calendar months. The only adjustment is the 4-day exclusion credit noted above.
+      </div>
+    </div>
+
+    <div class="sec-label">Payment schedule</div>
+    <table class="lease-table" style="margin-bottom:1.5rem;">
+      <tr><td>Security deposit (due today)</td><td class="gold">$5,000.00</td></tr>
+      <tr><td>Month 1 — June 1, 2026</td><td>$5,500.00</td></tr>
+      <tr><td>Month 2 — July 1, 2026 <span style="font-size:11px;color:var(--muted);">(incl. 4-day credit)</span></td><td>$4,766.67</td></tr>
+      <tr><td style="font-weight:500; color:var(--charcoal);">Total rent over lease</td><td class="gold">$10,266.67</td></tr>
+    </table>
+
+    <button class="btn-primary" onclick="goTo(1)">
+      I have reviewed the lease &nbsp; &#8594;
+    </button>
+  </div>
+</div>
+
+<!-- PANEL 1: TENANT INFO -->
+<div class="card hidden" id="panel-1">
+  <div class="card-header">
+    <div class="card-header-icon">&#9670;</div>
+    <div>
+      <div class="card-header-title">Your Information</div>
+      <div class="card-header-sub">All fields required for lease execution</div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="sec-label">Personal details</div>
+    <div class="field-row">
+      <div class="field-group"><label>First Name</label><input type="text" id="fname" placeholder="First name"></div>
+      <div class="field-group"><label>Last Name</label><input type="text" id="lname" placeholder="Last name"></div>
+    </div>
+    <div class="field-row">
+      <div class="field-group"><label>Email Address</label><input type="email" id="email" placeholder="you@email.com"></div>
+      <div class="field-group"><label>Phone Number</label><input type="tel" id="phone" placeholder="(615) 555-0000"></div>
+    </div>
+
+    <div class="sec-label">Current address</div>
+    <div class="field-group"><label>Street Address</label><input type="text" id="addr1" placeholder="Street address"></div>
+    <div class="field-row">
+      <div class="field-group"><label>City</label><input type="text" id="city" placeholder="City"></div>
+      <div class="field-group"><label>State &amp; ZIP</label><input type="text" id="statezip" placeholder="TN 00000"></div>
+    </div>
+
+    <div class="sec-label">Identification &amp; Occupancy</div>
+    <div class="field-row">
+      <div class="field-group">
+        <label>Government ID Type</label>
+        <select id="idtype">
+          <option value="">— Select —</option>
+          <option>Driver's License</option>
+          <option>Passport</option>
+          <option>State ID</option>
+          <option>Military ID</option>
+        </select>
+      </div>
+      <div class="field-group"><label>ID Number</label><input type="text" id="idnum" placeholder="ID number"></div>
+    </div>
+    <div class="field-group" style="max-width:200px;">
+      <label>Number of Occupants</label>
+      <select id="occupants">
+        <option value="">— Select —</option>
+        <option>1</option><option>2</option><option>3</option>
+        <option>4</option><option>5</option><option>6+</option>
+      </select>
+    </div>
+
+    <div id="info-err" class="err-msg">Please complete all fields before continuing.</div>
+    <button class="btn-primary" onclick="handleInfoNext()">Continue to Signature &nbsp; &#8594;</button>
+    <div class="nav-row"><button class="btn-ghost" onclick="goTo(0)">&#8592; Back</button></div>
+  </div>
+</div>
+
+<!-- PANEL 2: SIGNATURE -->
+<div class="card hidden" id="panel-2">
+  <div class="card-header">
+    <div class="card-header-icon">&#9670;</div>
+    <div>
+      <div class="card-header-title">Electronic Signature</div>
+      <div class="card-header-sub">Legally binding under the Tennessee Electronic Transactions Act</div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="alert alert-info" style="margin-bottom:1.25rem;">
+      <span class="alert-icon">ℹ</span>
+      <div style="font-size:12.5px;">By signing below you confirm you have read and agree to the full <strong>Luxury Short-Term Rental Agreement</strong> including the 4-day June exclusion, Exhibit A (video walk-through), and all 18 sections.</div>
+    </div>
+
+    <div class="sec-label">Draw your signature</div>
+    <div class="sig-wrap">
+      <div class="sig-toolbar">
+        <span>Sign in the box below</span>
+        <button class="btn-clear" onclick="clearSig()">✕ Clear</button>
+      </div>
+      <div class="sig-container">
+        <canvas class="sig-canvas" id="sigCanvas"></canvas>
+        <div class="sig-hint" id="sigHint">Sign here</div>
+      </div>
+    </div>
+
+    <div class="sec-label">Agreements</div>
+    <div class="check-list">
+      <label class="check-item"><input type="checkbox" id="chk1" onchange="checkSignBtn()"><span>I have read and agree to the full <strong>Luxury Residential Rental Agreement</strong> (all 18 sections and Exhibit A), governing law of the State of Tennessee.</span></label>
+      <label class="check-item"><input type="checkbox" id="chk2" onchange="checkSignBtn()"><span>I acknowledge the <strong>property unavailability June 25–28, 2026</strong> and agree to vacate by 12:00 PM on June 25 and return no earlier than 4:00 PM on June 29.</span></label>
+      <label class="check-item"><input type="checkbox" id="chk3" onchange="checkSignBtn()"><span>I understand the <strong>video walk-through</strong> (Exhibit A) is the sole condition record and agree to participate in or acknowledge both move-in and move-out recordings.</span></label>
+      <label class="check-item"><input type="checkbox" id="chk4" onchange="checkSignBtn()"><span>I authorize <strong>Historic Dream Nashville</strong> to charge my payment method for the security deposit and recurring monthly rent as outlined.</span></label>
+    </div>
+
+    <button class="btn-primary" id="signBtn" disabled onclick="handleSign()">Sign &amp; Continue &nbsp; &#8594;</button>
+    <div class="nav-row"><button class="btn-ghost" onclick="goTo(1)">&#8592; Back</button></div>
+  </div>
+</div>
+
+<!-- PANEL 3: DEPOSIT -->
+<div class="card hidden" id="panel-3">
+  <div class="card-header">
+    <div class="card-header-icon">&#9670;</div>
+    <div>
+      <div class="card-header-title">Security Deposit</div>
+      <div class="card-header-sub">One-time · refundable within 14 days of move-out</div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="sum-grid">
+      <div class="sum-card"><div class="sc-label">Deposit due now</div><div class="sc-value">$5,000</div><div class="sc-sub">Refundable</div></div>
+      <div class="sum-card light"><div class="sc-label">Daily rate (for ref.)</div><div class="sc-value">$183.33</div><div class="sc-sub">$5,500 ÷ 30 days</div></div>
+    </div>
+
+    <div class="sec-label">Payment method</div>
+    <div class="method-grid">
+      <div class="method-btn active" id="dep-ach" onclick="setDepMethod('ach')">
+        <div class="mb-icon">🏦</div>
+        <div class="mb-name">ACH Bank Transfer</div>
+        <div class="mb-fee">~0.8% · max $5 fee</div>
+      </div>
+      <div class="method-btn" id="dep-card" onclick="setDepMethod('card')">
+        <div class="mb-icon">💳</div>
+        <div class="mb-name">Credit / Debit Card</div>
+        <div class="mb-fee">2.9% + 30¢ (~$145 fee)</div>
+      </div>
+    </div>
+
+    <div class="stripe-wrap" id="dep-stripe-wrap">
+      <div id="dep-card-element" style="min-height:38px;"></div>
+      <div class="stripe-note">🔒 Encrypted by Stripe · 256-bit TLS</div>
+    </div>
+
+    <div id="dep-err" class="err-msg"></div>
+    <button class="btn-primary gold-btn" id="depBtn" onclick="handleDepositPay()">
+      <span id="depBtnText">Pay $5,000 Deposit</span>
+      <div class="spinner" id="depSpinner"></div>
+    </button>
+    <div class="nav-row"><button class="btn-ghost" onclick="goTo(2)">&#8592; Back</button></div>
+  </div>
+</div>
+
+<!-- PANEL 4: RENT AUTOPAY -->
+<div class="card hidden" id="panel-4">
+  <div class="card-header">
+    <div class="card-header-icon">&#9670;</div>
+    <div>
+      <div class="card-header-title">Monthly Rent — Autopay Setup</div>
+      <div class="card-header-sub">Billed automatically on the 1st of each month</div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="sum-grid">
+      <div class="sum-card"><div class="sc-label">Month 1 — June 1</div><div class="sc-value">$5,500</div><div class="sc-sub">Full month</div></div>
+      <div class="sum-card"><div class="sc-label">Month 2 — July 1</div><div class="sc-value">$4,767</div><div class="sc-sub">Incl. 4-day credit</div></div>
+    </div>
+
+    <div class="alert alert-warn" style="margin-bottom:1.25rem;">
+      <span class="alert-icon">⚠</span>
+      <div style="font-size:12.5px;">A late fee of <strong>$150 per day</strong> applies to any rent received after the 5th of the month. Autopay eliminates this risk.</div>
+    </div>
+
+    <div class="sec-label">Billing method for rent</div>
+    <div class="method-grid">
+      <div class="method-btn active" id="rent-ach" onclick="setRentMethod('ach')">
+        <div class="mb-icon">🏦</div>
+        <div class="mb-name">ACH Bank Transfer</div>
+        <div class="mb-fee">Recommended — lowest fees</div>
+      </div>
+      <div class="method-btn" id="rent-card" onclick="setRentMethod('card')">
+        <div class="mb-icon">💳</div>
+        <div class="mb-name">Credit / Debit Card</div>
+        <div class="mb-fee">2.9% + 30¢ per cycle</div>
+      </div>
+    </div>
+
+    <div class="stripe-wrap">
+      <div id="rent-card-element" style="min-height:38px;"></div>
+      <div class="stripe-note">🔒 Recurring autopay secured by Stripe</div>
+    </div>
+
+    <div class="check-list" style="margin-bottom:1.25rem;">
+      <label class="check-item"><input type="checkbox" id="autopayChk"><span>I authorize <strong>Historic Dream Nashville</strong> to automatically charge my payment method <strong>$5,500 on June 1, 2026</strong> and <strong>$4,766.67 on July 1, 2026</strong>, and understand late fees of $150/day apply after the 5th.</span></label>
+    </div>
+
+    <div id="rent-err" class="err-msg"></div>
+    <button class="btn-primary" id="rentBtn" onclick="handleRentSetup()">
+      <span id="rentBtnText">Set Up Autopay &nbsp; &#8594;</span>
+      <div class="spinner" id="rentSpinner"></div>
+    </button>
+    <div class="nav-row"><button class="btn-ghost" onclick="goTo(3)">&#8592; Back</button></div>
+  </div>
+</div>
+
+<!-- PANEL 5: CONFIRM -->
+<div class="card hidden" id="panel-5">
+  <div class="card-header">
+    <div class="card-header-icon">&#9670;</div>
+    <div>
+      <div class="card-header-title">Review &amp; Complete</div>
+      <div class="card-header-sub">Final step — confirm everything looks correct</div>
+    </div>
+  </div>
+  <div class="card-body" id="confirm-body">
+    <div class="sec-label">Summary</div>
+    <table class="confirm-table">
+      <tr><td>Lease agreement</td><td class="check-green">✓ Signed</td></tr>
+      <tr><td>Tenant name</td><td id="cf-name">—</td></tr>
+      <tr><td>Email</td><td id="cf-email">—</td></tr>
+      <tr><td>Security deposit</td><td>$5,000.00</td></tr>
+      <tr><td>Month 1 autopay — June 1</td><td>$5,500.00</td></tr>
+      <tr><td>Month 2 autopay — July 1 <span style="font-size:11px;font-weight:400;color:var(--muted);">(4-day credit)</span></td><td>$4,766.67</td></tr>
+      <tr><td>Total due today</td><td>$5,000.00</td></tr>
+    </table>
+
+    <div class="alert alert-info" style="margin-bottom:1.5rem;">
+      <span class="alert-icon">ℹ</span>
+      <div style="font-size:12.5px;">By clicking <strong>Complete &amp; Submit</strong> you confirm the security deposit charge and authorize the autopay schedule. A receipt and signed agreement copy will be emailed to you.</div>
+    </div>
+
+    <div id="final-err" class="err-msg"></div>
+    <button class="btn-primary gold-btn" style="font-size:14px; padding:1.1rem;" onclick="handleFinalSubmit()">
+      <span id="finalBtnText">&#128274; Complete &amp; Submit</span>
+      <div class="spinner" id="finalSpinner"></div>
+    </button>
+    <div class="nav-row"><button class="btn-ghost" onclick="goTo(4)">&#8592; Back</button></div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="success-wrap hidden" id="success-body">
+    <div class="success-ring">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+    <div class="success-title">You're all set!</div>
+    <div class="success-sub">Lease signed, deposit paid, and autopay confirmed. Check your email for a receipt and your signed agreement.</div>
+    <div class="receipt-box">
+      <div style="font-size:10px; letter-spacing:0.18em; color:rgba(232,213,163,0.4); text-transform:uppercase; margin-bottom:10px;">Confirmation</div>
+      <div class="receipt-row"><span>Tenant</span><span id="rc-name">—</span></div>
+      <div class="receipt-row"><span>Property</span><span>806 Boscobel St, Nashville TN</span></div>
+      <div class="receipt-row"><span>Lease term</span><span>Jun 1 – Jul 31, 2026</span></div>
+      <div class="receipt-row"><span>Deposit paid</span><span>$5,000.00</span></div>
+      <div class="receipt-row"><span>Autopay set</span><span>$5,500 + $4,767</span></div>
+      <div class="receipt-row"><span>Reference</span><span id="rc-ref" style="font-family:monospace; font-size:12px;">—</span></div>
+    </div>
+    <p style="font-size:12px; color:var(--muted); line-height:1.6;">Questions? Contact us at <a href="mailto:contact@historicdreamnashville.com" style="color:var(--gold);">contact@historicdreamnashville.com</a></p>
+  </div>
+</div>
+
+<div class="portal-footer">
+  <svg height="16" viewBox="0 0 60 25" fill="none" xmlns="http://www.w3.org/2000/svg" class="stripe-logo">
+    <path d="M4.5 10.2c0-.8.7-1.1 1.8-1.1 1.6 0 3.6.5 5.2 1.4V6.2C9.8 5.5 8 5.2 6.3 5.2 2.6 5.2 0 7.1 0 10.4c0 5.1 7 4.3 7 6.5 0 .9-.8 1.2-2 1.2-1.7 0-3.9-.7-5.6-1.7v4.4C1.1 21.5 3 22 5 22c3.8 0 6.4-1.9 6.4-5.2-.1-5.5-7-4.5-7-6.6zm14.2-8.7l-4.6 1V6h-2v4h2v6.8c0 3.3 1.8 4.5 4.9 4.5.9 0 2-.1 2.8-.4V17c-.5.1-3.1.9-3.1-1.4V10h3.1V6h-3.1V1.5zm10.8 4.3c-1.4 0-2.2.6-2.7 1.1l-.2-1H22v14h4.6v-7.8c0-2.1 1.3-2.8 2.7-2.8 1.4 0 1.9.9 1.9 2.8V21H36v-9.3c0-3.8-2-5.9-5.5-5.9zM38 21h4.6V6H38v15zm2.3-17.1c1.5 0 2.7-1.1 2.7-2.5S41.8 0 40.3 0s-2.7 1.1-2.7 2.4 1.2 2.5 2.7 2.5zM56 6l-.3 1.4C55 6.5 53.6 6 52 6c-3.6 0-6.5 3-6.5 7.5S48.4 21 52 21c1.7 0 3-.6 3.7-1.7l.3 1.4H60V6h-4zm-3.3 11.5c-1.8 0-2.9-1.5-2.9-4s1.1-4 2.9-4c1.9 0 2.9 1.5 2.9 4s-1 4-2.9 4z" fill="rgba(232,213,163,0.35)"/>
+  </svg>
+  Payments secured by Stripe &nbsp;·&nbsp; 256-bit encrypted
+</div>
+
+<script>
+// ── Config ──
+// When hosted on Render, this will be your Render URL e.g. https://hdn-portal.onrender.com
+const API_BASE = window.location.origin;
+
+// ── Stripe init ──
+const stripe = Stripe('pk_live_51Kb3b8Joq81QGjfmq04r5mU5BQmMabd8ds3nkbbdLWc1OLzJcFnAGk9fhd7HpLomlaZAzERobnS1tB9sR8NWV4hE00DCijlCFc');
+const elements = stripe.elements();
+
+const cardStyle = {
+  style: {
+    base: { fontFamily: "'Jost', sans-serif", fontSize: '14px', color: '#2C2C2C', '::placeholder': { color: '#aaa' } },
+    invalid: { color: '#e74c3c' }
+  }
+};
+
+let depCardEl, rentCardEl;
+let currentStep = 0;
+let depMethod = 'ach';
+let rentMethod = 'ach';
+let signed = false;
+let drawing = false, hasStrokes = false, ctx, sigCanvas;
+let savedCustomerId = null;
+let savedPaymentMethodId = null;
+
+// ── Mount Stripe card elements ──
+function mountDepCard() {
+  if (!depCardEl) {
+    depCardEl = elements.create('card', cardStyle);
+    depCardEl.mount('#dep-card-element');
+  }
+}
+function mountRentCard() {
+  if (!rentCardEl) {
+    rentCardEl = elements.create('card', cardStyle);
+    rentCardEl.mount('#rent-card-element');
+  }
+}
+
+// ── Navigation ──
+function goTo(n) {
+  document.getElementById('panel-' + currentStep).classList.add('hidden');
+  currentStep = n;
+  const panel = document.getElementById('panel-' + n);
+  panel.classList.remove('hidden');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  for (let i = 0; i <= 5; i++) {
+    const el = document.getElementById('ps' + i);
+    el.classList.remove('active', 'done');
+    if (i < n) el.classList.add('done');
+    if (i === n) el.classList.add('active');
+  }
+  if (n === 2) initSig();
+  if (n === 3) mountDepCard();
+  if (n === 4) mountRentCard();
+  if (n === 5) populateConfirm();
+}
+
+// ── Step 1: Info validation ──
+function handleInfoNext() {
+  const fields = ['fname','lname','email','phone','addr1','city','statezip','idtype','idnum','occupants'];
+  const allFilled = fields.every(id => document.getElementById(id).value.trim() !== '');
+  const errEl = document.getElementById('info-err');
+  if (!allFilled) { errEl.classList.add('show'); return; }
+  errEl.classList.remove('show');
+  goTo(2);
+}
+
+// ── Step 2: Signature ──
+function initSig() {
+  sigCanvas = document.getElementById('sigCanvas');
+  const wrap = sigCanvas.parentElement;
+  sigCanvas.width = wrap.offsetWidth;
+  sigCanvas.height = 110;
+  ctx = sigCanvas.getContext('2d');
+  ctx.strokeStyle = '#1A1A2E';
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  sigCanvas.addEventListener('mousedown', e => { drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); document.getElementById('sigHint').style.display='none'; });
+  sigCanvas.addEventListener('mousemove', e => { if(!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); hasStrokes = true; checkSignBtn(); });
+  sigCanvas.addEventListener('mouseup', () => drawing = false);
+  sigCanvas.addEventListener('mouseleave', () => drawing = false);
+  sigCanvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; const p = pos(e.touches[0]); ctx.beginPath(); ctx.moveTo(p.x, p.y); document.getElementById('sigHint').style.display='none'; }, {passive:false});
+  sigCanvas.addEventListener('touchmove', e => { e.preventDefault(); if(!drawing) return; const p = pos(e.touches[0]); ctx.lineTo(p.x, p.y); ctx.stroke(); hasStrokes = true; checkSignBtn(); }, {passive:false});
+  sigCanvas.addEventListener('touchend', () => drawing = false);
+}
+
+function pos(e) {
+  const r = sigCanvas.getBoundingClientRect();
+  return { x: (e.clientX - r.left), y: (e.clientY - r.top) };
+}
+
+function clearSig() {
+  if (ctx) ctx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+  hasStrokes = false;
+  document.getElementById('sigHint').style.display = '';
+  checkSignBtn();
+}
+
+function checkSignBtn() {
+  const allChk = ['chk1','chk2','chk3','chk4'].every(id => document.getElementById(id).checked);
+  document.getElementById('signBtn').disabled = !(hasStrokes && allChk);
+}
+
+function handleSign() {
+  signed = true;
+  goTo(3);
+}
+
+// ── Step 3: Deposit — real Stripe payment ──
+function setDepMethod(m) {
+  depMethod = m;
+  document.getElementById('dep-ach').classList.toggle('active', m==='ach');
+  document.getElementById('dep-card').classList.toggle('active', m==='card');
+}
+
+async function handleDepositPay() {
+  const btn = document.getElementById('depBtn');
+  const spinner = document.getElementById('depSpinner');
+  const txt = document.getElementById('depBtnText');
+  const errEl = document.getElementById('dep-err');
+  errEl.classList.remove('show');
+  btn.disabled = true; spinner.style.display = 'block'; txt.style.display = 'none';
+
+  const tenantName = `${document.getElementById('fname').value} ${document.getElementById('lname').value}`;
+  const tenantEmail = document.getElementById('email').value;
+
+  try {
+    // 1. Ask our server to create a PaymentIntent
+    const res = await fetch(`${API_BASE}/create-deposit-intent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenantName, tenantEmail, paymentMethodType: depMethod === 'ach' ? 'us_bank_account' : 'card' }),
+    });
+    const { clientSecret, error: serverErr } = await res.json();
+    if (serverErr) throw new Error(serverErr);
+
+    // 2. Confirm the payment with Stripe.js using the card element
+    let result;
+    if (depMethod === 'card') {
+      result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: { card: depCardEl, billing_details: { name: tenantName, email: tenantEmail } },
+        receipt_email: tenantEmail,
+      });
+    } else {
+      // ACH — Stripe will collect bank details via their hosted flow
+      result = await stripe.confirmUsBankAccountPayment(clientSecret, {
+        payment_method: { us_bank_account: { routing_number: document.getElementById('dep-routing') ? document.getElementById('dep-routing').value : '' }, billing_details: { name: tenantName, email: tenantEmail } },
+      });
+    }
+
+    if (result.error) throw new Error(result.error.message);
+
+    goTo(4);
+  } catch(e) {
+    errEl.textContent = e.message || 'Payment failed. Please check your details and try again.';
+    errEl.classList.add('show');
+    btn.disabled = false; spinner.style.display = 'none'; txt.style.display = 'inline';
+  }
+}
+
+// ── Step 4: Rent autopay — real Stripe SetupIntent ──
+function setRentMethod(m) {
+  rentMethod = m;
+  document.getElementById('rent-ach').classList.toggle('active', m==='ach');
+  document.getElementById('rent-card').classList.toggle('active', m==='card');
+}
+
+async function handleRentSetup() {
+  const chk = document.getElementById('autopayChk');
+  const errEl = document.getElementById('rent-err');
+  if (!chk.checked) { errEl.textContent = 'Please authorize the autopay to continue.'; errEl.classList.add('show'); return; }
+  errEl.classList.remove('show');
+
+  const btn = document.getElementById('rentBtn');
+  const spinner = document.getElementById('rentSpinner');
+  const txt = document.getElementById('rentBtnText');
+  btn.disabled = true; spinner.style.display = 'block'; txt.style.display = 'none';
+
+  const tenantName = `${document.getElementById('fname').value} ${document.getElementById('lname').value}`;
+  const tenantEmail = document.getElementById('email').value;
+
+  try {
+    // 1. Create SetupIntent on our server (saves payment method for future charges)
+    const res = await fetch(`${API_BASE}/create-setup-intent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenantName, tenantEmail, paymentMethodType: rentMethod === 'ach' ? 'us_bank_account' : 'card' }),
+    });
+    const { clientSecret, customerId, error: serverErr } = await res.json();
+    if (serverErr) throw new Error(serverErr);
+    savedCustomerId = customerId;
+
+    // 2. Confirm the SetupIntent — saves card for future autopay
+    let result;
+    if (rentMethod === 'card') {
+      result = await stripe.confirmCardSetup(clientSecret, {
+        payment_method: { card: rentCardEl, billing_details: { name: tenantName, email: tenantEmail } },
+      });
+    } else {
+      result = await stripe.confirmUsBankAccountSetup(clientSecret, {
+        payment_method: { us_bank_account: { routing_number: '', account_number: '' }, billing_details: { name: tenantName, email: tenantEmail } },
+      });
+    }
+
+    if (result.error) throw new Error(result.error.message);
+
+    // 3. Save payment method ID for scheduling
+    savedPaymentMethodId = result.setupIntent.payment_method;
+
+    // 4. Tell server to schedule both rent charges
+    await fetch(`${API_BASE}/schedule-autopay`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customerId, paymentMethodId: savedPaymentMethodId, tenantEmail }),
+    });
+
+    goTo(5);
+  } catch(e) {
+    errEl.textContent = e.message || 'Setup failed. Please check your details and try again.';
+    errEl.classList.add('show');
+    btn.disabled = false; spinner.style.display = 'none'; txt.style.display = 'inline';
+  }
+}
+
+// ── Step 5: Confirm ──
+function populateConfirm() {
+  const first = document.getElementById('fname').value;
+  const last = document.getElementById('lname').value;
+  const email = document.getElementById('email').value;
+  document.getElementById('cf-name').textContent = first + ' ' + last;
+  document.getElementById('cf-email').textContent = email;
+}
+
+async function handleFinalSubmit() {
+  const btn = document.querySelector('#panel-5 .btn-primary');
+  const spinner = document.getElementById('finalSpinner');
+  const txt = document.getElementById('finalBtnText');
+  btn.disabled = true; spinner.style.display = 'block'; txt.style.display = 'none';
+
+  // Small pause for UX — actual work is already done by this point
+  await new Promise(r => setTimeout(r, 800));
+
+  const first = document.getElementById('fname').value;
+  const last = document.getElementById('lname').value;
+  document.getElementById('rc-name').textContent = first + ' ' + last;
+  document.getElementById('rc-ref').textContent = 'HDN-' + Math.random().toString(36).substring(2,8).toUpperCase();
+  document.getElementById('confirm-body').classList.add('hidden');
+  document.getElementById('success-body').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
