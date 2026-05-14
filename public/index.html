@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0047)file:///Users/danbremnes/Downloads/index_1.html -->
+<!-- saved from url=(0047)file:///Users/danbremnes/Downloads/index_2.html -->
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -934,20 +934,13 @@ async function handleDepositPay() {
         receipt_email: tenantEmail,
       });
     } else {
-      // ACH — Stripe opens their hosted bank login popup (Financial Connections)
-      // No bank fields needed in our form — Stripe handles everything
-      result = await stripe.collectBankAccountForPayment({
-        clientSecret,
-        params: {
-          payment_method_type: 'us_bank_account',
-          payment_method_data: { billing_details: { name: tenantName, email: tenantEmail } },
+      // ACH — confirmUsBankAccountPayment opens Stripe's own bank auth flow
+      // Do NOT pass any bank fields — Stripe collects them securely
+      result = await stripe.confirmUsBankAccountPayment(clientSecret, {
+        payment_method: {
+          billing_details: { name: tenantName, email: tenantEmail },
         },
-        expand: ['payment_method'],
       });
-      // After bank is linked, confirm the payment
-      if (!result.error) {
-        result = await stripe.confirmUsBankAccountPayment(clientSecret);
-      }
     }
 
     if (result.error) throw new Error(result.error.message);
@@ -998,18 +991,13 @@ async function handleRentSetup() {
         payment_method: { card: rentCardEl, billing_details: { name: tenantName, email: tenantEmail } },
       });
     } else {
-      // ACH — Stripe hosted bank auth popup, no raw fields needed
-      result = await stripe.collectBankAccountForSetup({
-        clientSecret,
-        params: {
-          payment_method_type: 'us_bank_account',
-          payment_method_data: { billing_details: { name: tenantName, email: tenantEmail } },
+      // ACH — confirmUsBankAccountSetup opens Stripe's hosted bank auth
+      // Do NOT pass any bank fields — Stripe collects them securely
+      result = await stripe.confirmUsBankAccountSetup(clientSecret, {
+        payment_method: {
+          billing_details: { name: tenantName, email: tenantEmail },
         },
-        expand: ['payment_method'],
       });
-      if (!result.error) {
-        result = await stripe.confirmUsBankAccountSetup(clientSecret);
-      }
     }
 
     if (result.error) throw new Error(result.error.message);
@@ -1057,7 +1045,7 @@ async function handleFinalSubmit() {
   document.getElementById('confirm-body').classList.add('hidden');
   document.getElementById('success-body').classList.remove('hidden');
 }
-</script><iframe name="__privateStripeController5001" frameborder="0" allowtransparency="true" scrolling="no" role="presentation" allow="payment *" src="./Historic Dream Nashville — Tenant Portal_files/controller-with-preconnect-f3f0f6331c1d11e8ebf0b28cca9c4b68.html" aria-hidden="true" tabindex="-1" style="border-width: medium !important; border-style: none !important; border-color: currentcolor !important; border-image: initial !important; margin: 0px !important; padding: 0px !important; width: 1px !important; min-width: 100% !important; overflow: hidden !important; display: block !important; visibility: hidden !important; position: fixed !important; height: 1px !important; pointer-events: none !important; user-select: none !important;"></iframe>
+</script><iframe name="__privateStripeController5371" frameborder="0" allowtransparency="true" scrolling="no" role="presentation" allow="payment *" src="./Historic Dream Nashville — Tenant Portal_files/controller-with-preconnect-f3f0f6331c1d11e8ebf0b28cca9c4b68.html" aria-hidden="true" tabindex="-1" style="border-width: medium !important; border-style: none !important; border-color: currentcolor !important; border-image: initial !important; margin: 0px !important; padding: 0px !important; width: 1px !important; min-width: 100% !important; overflow: hidden !important; display: block !important; visibility: hidden !important; position: fixed !important; height: 1px !important; pointer-events: none !important; user-select: none !important;"></iframe>
 
 
-<iframe name="__privateStripeMetricsController5000" frameborder="0" allowtransparency="true" scrolling="no" role="presentation" allow="payment *" src="./Historic Dream Nashville — Tenant Portal_files/m-outer-3437aaddcdf6922d623e172c2d6f9278.html" aria-hidden="true" tabindex="-1" style="border-width: medium !important; border-style: none !important; border-color: currentcolor !important; border-image: initial !important; margin: 0px !important; padding: 0px !important; width: 1px !important; min-width: 100% !important; overflow: hidden !important; display: block !important; visibility: hidden !important; position: fixed !important; height: 1px !important; pointer-events: none !important; user-select: none !important;"></iframe></body></html>
+<iframe name="__privateStripeMetricsController5370" frameborder="0" allowtransparency="true" scrolling="no" role="presentation" allow="payment *" src="./Historic Dream Nashville — Tenant Portal_files/m-outer-3437aaddcdf6922d623e172c2d6f9278.html" aria-hidden="true" tabindex="-1" style="border-width: medium !important; border-style: none !important; border-color: currentcolor !important; border-image: initial !important; margin: 0px !important; padding: 0px !important; width: 1px !important; min-width: 100% !important; overflow: hidden !important; display: block !important; visibility: hidden !important; position: fixed !important; height: 1px !important; pointer-events: none !important; user-select: none !important;"></iframe></body></html>
