@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0047)file:///Users/danbremnes/Downloads/index_3.html -->
+<!-- saved from url=(0047)file:///Users/danbremnes/Downloads/index_4.html -->
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -502,7 +502,7 @@
       <tr><td>Weekly cleaning</td><td>Yes — included</td></tr>
       <tr><td>Yard &amp; plant care</td><td>Yes — included</td></tr>
       <tr><td>Governing law</td><td>State of Tennessee</td></tr>
-      <tr><td>Condition documentation</td><td>Video walk-through (Exhibit A)</td></tr>
+      <tr><td>Condition documentation</td><td>Video walk-through (separate document at move-in)</td></tr>
     </tbody></table>
 
     <div class="alert alert-warn">
@@ -603,7 +603,7 @@
   <div class="card-body">
     <div class="alert alert-info" style="margin-bottom:1.25rem;">
       <span class="alert-icon">ℹ</span>
-      <div style="font-size:12.5px;">By signing below you confirm you have read and agree to the full <strong>Luxury Short-Term Rental Agreement</strong> including the 4-day June exclusion, Exhibit A (video walk-through), and all 18 sections.</div>
+      <div style="font-size:12.5px;">By signing below you confirm you have read and agree to the full <strong>Luxury Short-Term Rental Agreement</strong> including the 4-day June exclusion and all 18 sections. A separate Video Walk-Through Record will be signed at move-in.</div>
     </div>
 
     <div class="sec-label">Draw your signature</div>
@@ -620,7 +620,7 @@
 
     <div class="sec-label">Agreements</div>
     <div class="check-list">
-      <label class="check-item"><input type="checkbox" id="chk1" onchange="checkSignBtn()"><span>I have read and agree to the full <strong>Luxury Residential Rental Agreement</strong> (all 18 sections and Exhibit A), governing law of the State of Tennessee.</span></label>
+      <label class="check-item"><input type="checkbox" id="chk1" onchange="checkSignBtn()"><span>I have read and agree to the full <strong>Luxury Residential Rental Agreement</strong> (all 18 sections), governing law of the State of Tennessee.</span></label>
       <label class="check-item"><input type="checkbox" id="chk2" onchange="checkSignBtn()"><span>I acknowledge the <strong>property unavailability June 25–28, 2026</strong> and agree to vacate by 11:00 AM on June 25 and return no earlier than 4:00 PM on June 29.</span></label>
       <label class="check-item"><input type="checkbox" id="chk3" onchange="checkSignBtn()"><span>I understand a <strong>video walk-through</strong> will be conducted at move-in and move-out as the sole condition record, and I will sign the separate Video Walk-Through Record on the Commencement Date.</span></label>
       <label class="check-item"><input type="checkbox" id="chk4" onchange="checkSignBtn()"><span>I authorize <strong>Historic Dream Nashville</strong> to charge my payment method for the security deposit and recurring monthly rent as outlined.</span></label>
@@ -792,14 +792,9 @@
 // When hosted on Render, this will be your Render URL e.g. https://hdn-portal.onrender.com
 const API_BASE = window.location.origin;
 
-// ── Stripe init — safe load ──
-let stripe, elements;
-try {
-  stripe = Stripe('pk_live_51Kb3b8Joq81QGjfmq04r5mU5BQmMabd8ds3nkbbdLWc1OLzJcFnAGk9fhd7HpLomlaZAzERobnS1tB9sR8NWV4hE00DCijlCFc');
-  elements = stripe.elements();
-} catch(e) {
-  console.error('Stripe failed to load:', e);
-}
+// ── Stripe init ──
+const stripe = Stripe('pk_live_51Kb3b8Joq81QGjfmq04r5mU5BQmMabd8ds3nkbbdLWc1OLzJcFnAGk9fhd7HpLomlaZAzERobnS1tB9sR8NWV4hE00DCijlCFc');
+const elements = stripe.elements();
 
 const cardStyle = {
   style: {
@@ -939,13 +934,20 @@ async function handleDepositPay() {
         receipt_email: tenantEmail,
       });
     } else {
-      // ACH — confirmUsBankAccountPayment opens Stripe's own bank auth flow
-      // Do NOT pass any bank fields — Stripe collects them securely
-      result = await stripe.confirmUsBankAccountPayment(clientSecret, {
-        payment_method: {
-          billing_details: { name: tenantName, email: tenantEmail },
+      // ACH — Stripe opens their hosted bank login popup (Financial Connections)
+      // No bank fields needed in our form — Stripe handles everything
+      result = await stripe.collectBankAccountForPayment({
+        clientSecret,
+        params: {
+          payment_method_type: 'us_bank_account',
+          payment_method_data: { billing_details: { name: tenantName, email: tenantEmail } },
         },
+        expand: ['payment_method'],
       });
+      // After bank is linked, confirm the payment
+      if (!result.error) {
+        result = await stripe.confirmUsBankAccountPayment(clientSecret);
+      }
     }
 
     if (result.error) throw new Error(result.error.message);
@@ -996,13 +998,18 @@ async function handleRentSetup() {
         payment_method: { card: rentCardEl, billing_details: { name: tenantName, email: tenantEmail } },
       });
     } else {
-      // ACH — confirmUsBankAccountSetup opens Stripe's hosted bank auth
-      // Do NOT pass any bank fields — Stripe collects them securely
-      result = await stripe.confirmUsBankAccountSetup(clientSecret, {
-        payment_method: {
-          billing_details: { name: tenantName, email: tenantEmail },
+      // ACH — Stripe hosted bank auth popup, no raw fields needed
+      result = await stripe.collectBankAccountForSetup({
+        clientSecret,
+        params: {
+          payment_method_type: 'us_bank_account',
+          payment_method_data: { billing_details: { name: tenantName, email: tenantEmail } },
         },
+        expand: ['payment_method'],
       });
+      if (!result.error) {
+        result = await stripe.confirmUsBankAccountSetup(clientSecret);
+      }
     }
 
     if (result.error) throw new Error(result.error.message);
@@ -1050,7 +1057,7 @@ async function handleFinalSubmit() {
   document.getElementById('confirm-body').classList.add('hidden');
   document.getElementById('success-body').classList.remove('hidden');
 }
-</script><iframe name="__privateStripeController0431" frameborder="0" allowtransparency="true" scrolling="no" role="presentation" allow="payment *" src="./Historic Dream Nashville — Tenant Portal_files/controller-with-preconnect-f3f0f6331c1d11e8ebf0b28cca9c4b68.html" aria-hidden="true" tabindex="-1" style="border-width: medium !important; border-style: none !important; border-color: currentcolor !important; border-image: initial !important; margin: 0px !important; padding: 0px !important; width: 1px !important; min-width: 100% !important; overflow: hidden !important; display: block !important; visibility: hidden !important; position: fixed !important; height: 1px !important; pointer-events: none !important; user-select: none !important;"></iframe>
+</script><iframe name="__privateStripeController0111" frameborder="0" allowtransparency="true" scrolling="no" role="presentation" allow="payment *" src="./Historic Dream Nashville — Tenant Portal_files/controller-with-preconnect-f3f0f6331c1d11e8ebf0b28cca9c4b68.html" aria-hidden="true" tabindex="-1" style="border-width: medium !important; border-style: none !important; border-color: currentcolor !important; border-image: initial !important; margin: 0px !important; padding: 0px !important; width: 1px !important; min-width: 100% !important; overflow: hidden !important; display: block !important; visibility: hidden !important; position: fixed !important; height: 1px !important; pointer-events: none !important; user-select: none !important;"></iframe>
 
 
-<iframe name="__privateStripeMetricsController0430" frameborder="0" allowtransparency="true" scrolling="no" role="presentation" allow="payment *" src="./Historic Dream Nashville — Tenant Portal_files/m-outer-3437aaddcdf6922d623e172c2d6f9278.html" aria-hidden="true" tabindex="-1" style="border-width: medium !important; border-style: none !important; border-color: currentcolor !important; border-image: initial !important; margin: 0px !important; padding: 0px !important; width: 1px !important; min-width: 100% !important; overflow: hidden !important; display: block !important; visibility: hidden !important; position: fixed !important; height: 1px !important; pointer-events: none !important; user-select: none !important;"></iframe></body></html>
+<iframe name="__privateStripeMetricsController0110" frameborder="0" allowtransparency="true" scrolling="no" role="presentation" allow="payment *" src="./Historic Dream Nashville — Tenant Portal_files/m-outer-3437aaddcdf6922d623e172c2d6f9278.html" aria-hidden="true" tabindex="-1" style="border-width: medium !important; border-style: none !important; border-color: currentcolor !important; border-image: initial !important; margin: 0px !important; padding: 0px !important; width: 1px !important; min-width: 100% !important; overflow: hidden !important; display: block !important; visibility: hidden !important; position: fixed !important; height: 1px !important; pointer-events: none !important; user-select: none !important;"></iframe></body></html>
